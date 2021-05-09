@@ -1,0 +1,39 @@
+body {
+  margin: 0;
+  overflow: hidden;
+}
+
+p {
+  white-space: nowrap;
+}
+
+li {
+  list-style: none;
+}
+
+input {
+  display: inline;
+  background-color: transparent;
+}
+
+#virus {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -100;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.tableau {
+  backdrop-filter: blur(2px);
+  background-color: rgba(206, 237, 199, 0.393);
+  border: 2px rgba(226, 254, 227, 0.742) solid;
+  width: 50vw;
+  height: 60vh;
+  position: absolute;
+  top: 20vh;
+  left: 25vw;
+  border-radius: 10px;
+}
