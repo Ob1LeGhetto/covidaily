@@ -5,30 +5,25 @@ let date = focusDate.toLocaleDateString('FR');
 focusDate = focusDate.toISOString();
 $('.dateToday').append(date);
 
-let calcCases = ['Covid data'];
+$('.countries').click(() => {
+    $('.countries-tab').css('right', '0vw');
+    $('.country-choice-bg').fadeIn(0, () => {
+        $('.country-choice-bg').css('opacity', '1');
+    });
+});
+
+$('.country-choice-bg').click(() => {
+    closeCountriesTab();
+});
+
+let calcCases = [];
 const pays = [];
 let selectedCountry = 'france';
-
-$.ajax({
-    url: 'https://api.covid19api.com',
-    dataType: 'json'
-}).done((data) => {
-    console.log('Résumé de toutes les données accessibles:', data);
-    for (let property in data) {
-        if (data[property]['Name'].indexOf('Premium')) {
-            console.log('Property ' + property + '.');
-            console.log(data[property]['Description'] + '.');
-            console.log('Corresponding path: https://api.covid19api.com' + data[property]['Path']);
-            console.log('');
-        }
-    }
-});
 
 $.ajax({
     url: 'https://api.covid19api.com/countries',
     dataType: 'json'
 }).done((data) => {
-    console.log(data);
     for (let i = 0; i < data.length; i++) {
         pays.push({
             Country: data[i].Country,
@@ -39,21 +34,30 @@ $.ajax({
     pays.sort((a, b) => (a.Country > b.Country ? 1 : b.Country > a.Country ? -1 : 0));
 
     pays.forEach((paysNom) => {
-        $('datalist#countries').append(`<option id="${paysNom['Slug']}" value="${paysNom['Country']}"></option>`);
+        $('#countries').append(`<option id="${paysNom['Slug']}" value="${paysNom['Country']}">${paysNom['Country']}</option>`);
+        $('#countries-displayed').append(`<small class="tab-countries" id="${paysNom['Slug']}">${paysNom['Country']}</small>`);
     });
 });
 
 function changeSelectedCountry() {
-    console.log('Selected country has changed.');
+    selectedCountry = $('#countries option[value="' + $('#country-choice').val() + '"]').attr('id');
 
-    selectedCountry = $("#countries option[value='" + $('#country-choice').val() + "']").attr('id');
+    reloadCountryData();
+}
 
-    if (selectedCountry === undefined) {
-        $('#country-choice').val('France');
-        selectedCountry = 'france';
-    }
+$(window).on('load', function () {
+    $('.tab-countries').on('click', function () {
+        selectedCountry = $(this).attr('id');
+        $('#countries').val($(this).text());
+        $('#selected-country-value').text($(this).text());
 
-    calcCases = ['Covid data'];
+        closeCountriesTab();
+        reloadCountryData();
+    });
+});
+
+function reloadCountryData() {
+    calcCases = [];
 
     $.ajax({
         url: `https://api.covid19api.com/total/country/${selectedCountry}`,
@@ -64,52 +68,146 @@ function changeSelectedCountry() {
             $('.number-data')[i].textContent = '';
         }
         insertDataIntoHtml(calcCases);
+        retrieveSpecificData();
     });
 }
 
 function dataToObjArray(array, dataFromApi) {
-    array.push({
-        Deaths: [dataFromApi[dataFromApi.length - 2].Deaths, dataFromApi[dataFromApi.length - 3].Deaths, dataFromApi[dataFromApi.length - 4].Deaths],
-        Recovered: [
-            dataFromApi[dataFromApi.length - 2].Recovered,
-            dataFromApi[dataFromApi.length - 3].Recovered,
-            dataFromApi[dataFromApi.length - 4].Recovered
-        ],
-        Confirmed: [
-            dataFromApi[dataFromApi.length - 2].Confirmed,
-            dataFromApi[dataFromApi.length - 3].Confirmed,
-            dataFromApi[dataFromApi.length - 4].Confirmed
-        ],
-        Total: [dataFromApi[dataFromApi.length - 2].Active, dataFromApi[dataFromApi.length - 30].Active]
-    });
+    let checkData = dataFromApi[dataFromApi.length - 2];
+    if (checkData === undefined) {
+        array.push({
+            Deaths: ['NaN*', 'NaN*', 'NaN*'],
+            Recovered: ['NaN*', 'NaN*', 'NaN*'],
+            Confirmed: ['NaN*', 'NaN*', 'NaN*'],
+            Total: ['NaN*', 'NaN*'],
+            TotalDeaths: 'NaN*'
+        });
+    } else {
+        array.push({
+            Deaths: [dataFromApi[dataFromApi.length - 2].Deaths, dataFromApi[dataFromApi.length - 3].Deaths, dataFromApi[dataFromApi.length - 4].Deaths],
+            Recovered: [
+                dataFromApi[dataFromApi.length - 2].Recovered,
+                dataFromApi[dataFromApi.length - 3].Recovered,
+                dataFromApi[dataFromApi.length - 4].Recovered
+            ],
+            Confirmed: [
+                dataFromApi[dataFromApi.length - 2].Confirmed,
+                dataFromApi[dataFromApi.length - 3].Confirmed,
+                dataFromApi[dataFromApi.length - 4].Confirmed
+            ],
+            Total: [dataFromApi[dataFromApi.length - 2].Active, dataFromApi[dataFromApi.length - 30].Active],
+            TotalDeaths: dataFromApi[dataFromApi.length - 1].Deaths
+        });
+    }
 }
 
 function insertDataIntoHtml(array) {
-    document.getElementById('num-pos-cases').innerText = (array[1].Confirmed[0] - array[1].Confirmed[1]).toLocaleString();
-    if (!valuesComparison('Confirmed', array)) {
-        document.getElementById('pos-cases-arrow').src = document.getElementById('pos-cases-arrow').src.replace('red', 'green');
-        document.getElementById('pos-cases-arrow').classList += ' neg';
+    if (typeof array[0].Confirmed[0] === 'string') {
+        for (let i = 0; i < $('.number-data').length; i++) {
+            $('.number-data')[i].textContent = 'NaN*';
+        }
+        $('.svg-arrow').css('visibility', 'hidden');
+        $('#nan-alert').css('visibility', 'visible');
+    } else {
+        $('.svg-arrow').css('visibility', 'visible');
+        $('#nan-alert').css('visibility', 'hidden');
+        document.getElementById('num-pos-cases').innerText = (array[0].Confirmed[0] - array[0].Confirmed[1]).toLocaleString();
+        if (valuesComparison('Confirmed', array)) {
+            document.getElementById('pos-cases-arrow').src = document.getElementById('pos-cases-arrow').src.replace('red', 'green');
+            $('#pos-cases-arrow').addClass('neg');
+        } else {
+            document.getElementById('pos-cases-arrow').src = document.getElementById('pos-cases-arrow').src.replace('green', 'red');
+            $('#pos-cases-arrow').removeClass('neg');
+        }
+
+        document.getElementById('num-deaths-cases').innerText = (array[0].Deaths[0] - array[0].Deaths[1]).toLocaleString();
+        if (valuesComparison('Deaths', array)) {
+            document.getElementById('num-deaths-arrow').src = document.getElementById('num-deaths-arrow').src.replace('red', 'green');
+            $('#num-deaths-arrow').addClass('neg');
+        } else {
+            document.getElementById('num-deaths-arrow').src = document.getElementById('num-deaths-arrow').src.replace('green', 'red');
+            $('#num-deaths-arrow').removeClass('neg');
+        }
+
+        document.getElementById('num-recovered-cases').innerText = (array[0].Recovered[0] - array[0].Recovered[1]).toLocaleString();
+        if (valuesComparison('Recovered', array)) {
+            document.getElementById('num-recovered-arrow').src = document.getElementById('num-recovered-arrow').src.replace('green', 'red');
+            $('#num-recovered-arrow').addClass('neg');
+        } else {
+            document.getElementById('num-recovered-arrow').src = document.getElementById('num-recovered-arrow').src.replace('red', 'green');
+            $('#num-recovered-arrow').removeClass('neg');
+        }
     }
 
-    document.getElementById('num-death-cases').innerText = (array[1].Deaths[0] - array[1].Deaths[1]).toLocaleString();
-    if (!valuesComparison('Deaths', array)) {
-        document.getElementById('num-deaths-arrow').src = document.getElementById('num-deaths-arrow').src.replace('red', 'green');
-        document.getElementById('num-deaths-arrow').classList += ' neg';
-    }
+    document.getElementById('num-total-cases').innerText = array[0].Total[0].toLocaleString();
 
-    document.getElementById('num-recovered-cases').innerText = (array[1].Recovered[0] - array[1].Recovered[1]).toLocaleString();
-    if (!valuesComparison('Recovered', array)) {
-        document.getElementById('num-recovered-arrow').src = document.getElementById('num-recovered-arrow').src.replace('green', 'red');
-        document.getElementById('num-recovered-arrow').classList += ' neg';
-    }
+    document.getElementById('num-total-deaths').innerText = array[0].TotalDeaths.toLocaleString();
 
-    document.getElementById('num-total-cases').innerText = array[1].Total[0].toLocaleString();
-
-    document.getElementById('num-total-cases-minus-30').innerText = array[1].Total[1].toLocaleString();
+    document.getElementById('num-total-cases-minus-30').innerText = array[0].Total[1].toLocaleString();
 }
 
 function valuesComparison(str, array) {
-    return array[1][str][0] - array[1][str][1] > array[1][str][1] - array[1][str][2];
+    const dayMinusTwo = array[0][str][0];
+    const dayMinusThree = array[0][str][1];
+    const dayMinusFour = array[0][str][2];
+    return dayMinusTwo - dayMinusThree < dayMinusThree - dayMinusFour;
 }
 
-changeSelectedCountry();
+function retrieveSpecificData() {
+    $.ajax({
+        url: `https://api.covid19api.com/total/country/${selectedCountry}`,
+        dataType: 'json'
+    }).done((countryData) => {
+        const specificDate = document.getElementById('date-choice').value + 'T00:00:00Z';
+        const foundDate = countryData.find((day) => day.Date === specificDate);
+        insertSpecificDataIntoHtml(foundDate);
+    });
+}
+
+function insertSpecificDataIntoHtml(covidData) {
+    document.getElementById('specific-num-pos-cases').innerText = covidData.Active.toLocaleString();
+    document.getElementById('specific-num-deaths-cases').innerText = covidData.Deaths.toLocaleString();
+    document.getElementById('specific-num-recovered-cases').innerText = covidData.Recovered.toLocaleString();
+    document.getElementById('specific-num-total-cases').innerText = covidData.Confirmed.toLocaleString();
+}
+
+function changeSection() {
+    $('#homepage').toggleClass('selected-section').toggleClass('not-selected-section');
+    $('#before').toggleClass('selected-section').toggleClass('not-selected-section');
+    if ($('#homepage').hasClass('not-selected-section')) {
+        $('#container1').css('transform', 'translateX(-100vw)');
+        $('#container2').css('transform', 'translateX(0vw)');
+    } else {
+        $('#container1').css('transform', 'translateX(0vw)');
+        $('#container2').css('transform', 'translateX(100vw)');
+    }
+}
+
+function closeCountriesTab() {
+    $('.countries-tab').css('right', '-50vw');
+    $('.country-choice-bg').css('opacity', '0');
+    setTimeout(() => {
+        $('.country-choice-bg').fadeOut(0);
+    }, 500);
+}
+
+$.ajax({
+    url: `https://api.covid19api.com/total/country/france`,
+    dataType: 'json'
+}).done((countryData) => {
+    dataToObjArray(calcCases, countryData);
+    for (let i = 0; i < $('.number-data').length; i++) {
+        $('.number-data')[i].textContent = '';
+    }
+    insertDataIntoHtml(calcCases);
+    retrieveSpecificData();
+});
+
+window.onload = () => {
+    setTimeout(() => {
+        $('#loading').fadeOut('slow');
+    }, 400);
+};
+
+document.getElementById('date-choice').value = focusDate.split('T')[0];
+document.getElementById('date-choice').setAttribute('max', focusDate.split('T')[0]);

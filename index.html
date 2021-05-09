@@ -1,30 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="shortcut icon" href="assets/img/favicon.png" type="image/x-icon" />
+        <title>Covidaily</title>
+        <link rel="stylesheet" href="assets/stylesheets/style.css" />
+    </head>
 
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="assets/style.css">
-</head>
-
-<body>
-    <div id="white-bg" style="background-color: rgba(255, 255, 255, 0.2); height: 100vh; width: 100vw;">
-        <div class="tableau">
-            <p>Sélectionner un pays pour voir ses informations (<span class="dateToday"></span>)</p>
-            <input list="countries" id="country-choice" name="country-choice" />
+    <body>
+        <div id="loading">
+            <img src="assets/img/graph.png" alt="" />
+            <h1>Covidaily</h1>
         </div>
-        <datalist id="countries">
-        </datalist>
-
-        <div style="position: relative; height:20vh; width:20vw">
-            <canvas id="myChart"></canvas>
+        <div id="white-bg" style="background-color: rgba(255, 255, 255, 0.6); height: 100vh; width: 100vw">
+            <nav class="navbar-menu" style="width: 20vw; margin: auto; padding-top: 5vh">
+                <input type="button" style="cursor: pointer; padding: 0" class="selected-section" onclick="changeSection()" id="homepage" value="Accueil" />
+                <input type="button" style="cursor: pointer; padding: 0" class="not-selected-section" onclick="changeSection()" id="before" value="Avant" />
+            </nav>
+            <div class="country-choice-bg"></div>
+            <div id="selected-country" class="countries">
+                <h2 id="selected-country-value">France</h2>
+            </div>
+            <div class="countries-tab">
+                <div class="search-country">
+                    <input
+                        list="countries"
+                        id="country-choice"
+                        name="country-choice"
+                        style="border: none; outline: none; font-size: 120%; width: 80%;"
+                        onchange="changeSelectedCountry()"
+                    />
+                    <datalist id="countries"> </datalist>
+                    <button class="validateCountry" onclick="closeCountriesTab()"><img src="assets/img/loupe.png" style="height: 10px" alt="" /></button>
+                </div>
+                <div id="countries-displayed"></div>
+            </div>
+            <div id="container1">
+                <div class="tableau" style="display: flex; flex-direction: column; justify-content: space-between">
+                    <div id="ligne1" style="display: flex;">
+                        <div id="pos-cases">
+                            <p style="font-size: 2rem">Nombre de cas positifs</p>
+                            <p class="number-data" style="font-size: 3rem" id="num-pos-cases"></p>
+                            <sup> <img src="assets/img/arrow-red.svg" id="pos-cases-arrow" class="svg-arrow" alt="" /></sup>
+                        </div>
+                    </div>
+                    <div id="ligne2" style="display: flex;">
+                        <div id="deaths-cases">
+                            <p>Nombre de décès</p>
+                            <p class="number-data" style="font-size: 2.5rem" id="num-deaths-cases"></p>
+                            <sup> <img src="assets/img/arrow-red.svg" id="num-deaths-arrow" class="svg-arrow" alt="" /></sup>
+                        </div>
+                        <div id="recovered-cases">
+                            <p>Nombre de rétablissements</p>
+                            <p class="number-data" style="font-size: 2.5rem" id="num-recovered-cases"></p>
+                            <sup> <img src="assets/img/arrow-green.svg" id="num-recovered-arrow" class="svg-arrow" alt="" /></sup>
+                        </div>
+                    </div>
+                    <div id="ligne3" style="display: flex;">
+                        <div id="total-pos">
+                            <p>Total: cas positifs</p>
+                            <p class="number-data" id="num-total-cases"></p>
+                        </div>
+                        <div id="total-minus-30">
+                            <p>Total: il y a un mois</p>
+                            <p class="number-data" id="num-total-cases-minus-30"></p>
+                        </div>
+                        <div id="total-deaths">
+                            <p>Total: décès</p>
+                            <p class="number-data" id="num-total-deaths"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="container2">
+                <div class="tableau" style="display: flex; flex-direction: column; justify-content: space-between">
+                    <div id="specific-date">
+                        <p>Choisissez une date précise</p>
+                        <input id="date-choice" type="date" onchange="retrieveSpecificData()" min="2020-01-22" />
+                    </div>
+                    <div id="specific-pos-cases">
+                        <p>Nombre de cas positifs</p>
+                        <p class="number-data" id="specific-num-pos-cases"></p>
+                    </div>
+                    <div id="specific-deaths-cases">
+                        <p>Nombre de décès</p>
+                        <p class="number-data" id="specific-num-deaths-cases"></p>
+                    </div>
+                    <div id="specific-recovered-cases">
+                        <p>Nombre de rétablissements</p>
+                        <p class="number-data" id="specific-num-recovered-cases"></p>
+                    </div>
+                    <div id="specific-total">
+                        <p>Total: cas positifs</p>
+                        <p class="number-data" id="specific-num-total-cases"></p>
+                    </div>
+                </div>
+            </div>
+            <footer style="position: absolute; bottom: 2vh; right: 2vw; font-family: 'Gilmer_Light'; text-align: right">
+                <span id="nan-alert">* Aucune donnée n'est disponible pour ce territoire.</span>
+                <br />Informations du <span class="dateToday"></span>
+            </footer>
         </div>
-
-        <script type="module" src="scripts/corona.js"></script>
-        <script src="scripts/chart.js"></script>
-    </div>
-</body>
-
+        <script src="scripts/jquery-3.6.0.min.js"></script>
+        <script type="module" src="scripts/corona.js" async></script>
+        <script src="scripts/script.js"></script>
+    </body>
 </html>
